@@ -1,8 +1,9 @@
 package shell
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestParseCommand(t *testing.T) {
@@ -16,6 +17,8 @@ func TestParseCommand(t *testing.T) {
 		{"cat /file-path", "cat", []string{"/file-path"}},
 		{"cd ..", "cd", []string{".."}},
 		{"echo", "echo", []string{}},
+		{" ", "", []string{""}},
+		{"   ", "", []string{"", "", ""}},
 	}
 
 	for _, td := range testData {
@@ -23,10 +26,10 @@ func TestParseCommand(t *testing.T) {
 		name, args := ParseCommand(td.cmd)
 
 		if td.name != name {
-			t.Errorf("Expected command name: %s, got: %s", td.name, name)
+			t.Errorf("ParseCommand(%q): Expected command name to be %q, got: %q", td.cmd, td.name, name)
 		}
-		if !reflect.DeepEqual(td.args, args) {
-			t.Errorf("Expected args: %s, got %s", td.args, args)
+		if !cmp.Equal(td.args, args) {
+			t.Errorf("ParseCommand(%q): Expected args to be %q, got %q", td.cmd, td.args, args)
 		}
 	}
 
