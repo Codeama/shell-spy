@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os/exec"
@@ -20,14 +21,18 @@ func ParseCommand(cmd string) (string, []string) {
 
 // Execute accepts a command argument and writes the result to a writer
 func Execute(w io.Writer, commandLine string) error {
+	var out bytes.Buffer
 	name, args := ParseCommand(commandLine)
 	cmd := exec.Command(name, args...)
-	cmd.Stdout = w
+
+	multiW := io.MultiWriter(w, &out)
+	cmd.Stdout = multiW
+
 	err := cmd.Run()
 	if err != nil {
 		return err
 	}
 
-	fmt.Print(w)
+	fmt.Println(out.String())
 	return nil
 }
