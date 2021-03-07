@@ -7,7 +7,7 @@ import (
 )
 
 func TestParseCommand(t *testing.T) {
-	testData := []struct {
+	tcs := []struct {
 		cmd  string
 		name string
 		args []string
@@ -17,19 +17,21 @@ func TestParseCommand(t *testing.T) {
 		{"cat /file-path", "cat", []string{"/file-path"}},
 		{"cd ..", "cd", []string{".."}},
 		{"echo", "echo", []string{}},
-		{" ", "", []string{""}},
-		{"   ", "", []string{"", "", ""}},
+		{"echo'", "echo'", []string{}},
+		{" ", " ", []string{}},
+		{"   ", "   ", []string{}},
+		{"echo 'Hello, 123'", "echo", []string{"Hello, 123"}},
 	}
 
-	for _, td := range testData {
+	for _, tc := range tcs {
 
-		name, args := ParseCommand(td.cmd)
+		name, args := ParseCommand(tc.cmd)
 
-		if td.name != name {
-			t.Errorf("ParseCommand(%q): Expected command name to be %q, got: %q", td.cmd, td.name, name)
+		if tc.name != name {
+			t.Errorf("ParseCommand(%q): Expected command name to be %q, got: %q", tc.cmd, tc.name, name)
 		}
-		if !cmp.Equal(td.args, args) {
-			t.Errorf("ParseCommand(%q): Expected args to be %q, got %q", td.cmd, td.args, args)
+		if !cmp.Equal(tc.args, args) {
+			t.Errorf("ParseCommand(%q): Expected args to be %q, got %q", tc.cmd, tc.args, args)
 		}
 	}
 

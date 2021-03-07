@@ -2,4 +2,7 @@ module logger
 
 go 1.13
 
-require github.com/google/go-cmp v0.5.5
+require (
+	bitbucket.org/creachadair/shell v0.0.6
+	github.com/google/go-cmp v0.5.5
+)
