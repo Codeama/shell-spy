@@ -1,4 +1,4 @@
-module logger
+module spy
 
 go 1.13
 
