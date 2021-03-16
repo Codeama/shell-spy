@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"spy"
@@ -21,14 +20,11 @@ func main() {
 
 	defer f.Close()
 	var out bytes.Buffer
-
 	for scanner.Scan() {
-		w := io.MultiWriter(f, &out)
-		spy.Execute(w, scanner.Text())
-		if len(scanner.Text()) == 0 {
-			out.Reset()
-		}
+		spy.Execute(&out, f, scanner.Text())
+
 		fmt.Println(out.String())
+		// os.Exit(0)
 	}
 
 }
