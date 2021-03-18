@@ -44,7 +44,3 @@ func TestParseCommand(t *testing.T) {
 	}
 
 }
-
-func TestExecute(t *testing.T) {
-
-}

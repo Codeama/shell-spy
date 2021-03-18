@@ -3,28 +3,38 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"spy"
+
+	"github.com/fatih/color"
 )
 
 func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	f, err := os.Create("/tmp/log")
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	user, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	host, err := os.Hostname()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer f.Close()
 	var out bytes.Buffer
+	color.New(color.BgCyan).Printf("%v@%v:", user.Username, host)
 	for scanner.Scan() {
 		spy.Execute(&out, f, scanner.Text())
-
-		fmt.Println(out.String())
-		// os.Exit(0)
+		color.New(color.FgCyan).Println(out.String())
 	}
 
 }
