@@ -6,43 +6,40 @@ import (
 	"bytes"
 	"spy"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestExecuteIntegration(t *testing.T) {
-	want := struct{ a, b string }{
-		a: "Hello\n",
-		b: "************ START ************\nCOMMAND: echo Hello\n\nOUTPUT:\nHello\n",
-	}
-	var buff, buff2 bytes.Buffer
-	err := spy.Execute(&buff, &buff2, "echo Hello")
+	expectedTerminal := "Hello\n"
+	expectedRecorder := "************ START ************\nCOMMAND: echo Hello \n\nOUTPUT:\nHello\n"
+
+	var terminal, recorder bytes.Buffer
+	err := spy.Execute(&terminal, &recorder, "echo Hello")
 
 	if err != nil {
 		t.Error(err)
 	}
-	got := struct{ a, b string }{
-		a: buff.String(),
-		b: buff2.String(),
+
+	if !cmp.Equal(expectedTerminal, terminal.String()) {
+		t.Errorf("Want: %q, got: %q", expectedRecorder, &terminal)
 	}
 
-	if want.a != got.a {
-		t.Errorf("Want: %q, got: %q", want.a, got.a)
-	}
-
-	if want.b != got.b {
-		t.Errorf("Want: %q, got: %q", want.b, got.b)
+	if !cmp.Equal(expectedRecorder, recorder.String()) {
+		t.Errorf("Want: %q, got: %q", expectedRecorder, &terminal)
 	}
 }
 
 func TestExecuteIntegrationInvalid(t *testing.T) {
-	var buff, buff2 bytes.Buffer
+	var terminal, recorder bytes.Buffer
 	want := "Error parsing command\n"
-	err := spy.Execute(&buff, &buff2, "echo Hello'")
+	err := spy.Execute(&terminal, &recorder, "echo Hello'")
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	got := buff.String()
+	got := terminal.String()
 	if want != got {
 		t.Errorf("Want: %q, got: %q", want, got)
 	}
