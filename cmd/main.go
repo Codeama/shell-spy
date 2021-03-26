@@ -1,9 +1,12 @@
 package main
 
-import (
-	"spy"
-)
+import "log"
 
 func main() {
-	spy.StartSession("/tmp/log")
+	err := spy.RunSession("/tmp/log",
+		spy.WithTimestamps(),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"time"
 
 	"bitbucket.org/creachadair/shell"
 	"github.com/fatih/color"
@@ -53,13 +54,40 @@ func Execute(terminal io.Writer, recorder io.Writer, commandLine string) error {
 	return nil
 }
 
-func StartSession(filepath string) {
-	scanner := bufio.NewScanner(os.Stdin)
-	f, err := os.Create(filepath)
-	if err != nil {
-		log.Fatal(err)
-	}
+type Option func(*Session) error
 
+type Session struct{
+	timestampMode bool
+	Recorder io.Writer
+}
+
+func WithTimestamps() Option {
+	return func(s *Session) error {
+		s.timestampMode = true
+		return nil
+	}
+}
+
+func NewSession(filepath string, opts ...Option) (Session, error) {
+	session := Session{}
+	f, err := os.Create(s.filepath)
+	if err != nil {
+		return err
+	}
+	session.Recorder = f
+	for _, opt := range opts {
+		err := opt(&session)
+		if err != nil {
+			return err
+		}
+	}
+	return session
+}
+
+func (s *Session) Run() {
+	scanner := bufio.NewScanner(os.Stdin)
+
+	defer f.Close()
 	user, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
@@ -69,12 +97,18 @@ func StartSession(filepath string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	defer f.Close()
+	if s.timestampMode {
+		// do the timestamps
+	}
 	var out bytes.Buffer
 	color.New(color.BgCyan).Printf("%v@%v:", user.Username, host)
 	for scanner.Scan() {
-		Execute(&out, f, scanner.Text())
+		s.Execute(scanner.Text())
 		color.New(color.FgCyan).Println(out.String())
 	}
+}
+
+func (s *Session) Record(ts time.Time, text string) {
+	formattedTime := ts.Format(time.RFC3339)
+	fmt.Fprintf(s.Recorder, "%s %s", formattedTime, s.Recorder)
 }

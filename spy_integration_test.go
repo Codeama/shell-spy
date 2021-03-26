@@ -11,8 +11,8 @@ import (
 )
 
 func TestExecuteIntegration(t *testing.T) {
-	expectedTerminal := "Hello\n"
-	expectedRecorder := "************ START ************\nCOMMAND: echo Hello \n\nOUTPUT:\nHello\n"
+	wantTerminal := "Hello\n"
+	wantRecorder := "************ START ************\nCOMMAND: echo Hello \n\nOUTPUT:\nHello\n"
 
 	var terminal, recorder bytes.Buffer
 	err := spy.Execute(&terminal, &recorder, "echo Hello")
@@ -20,13 +20,13 @@ func TestExecuteIntegration(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
-	if !cmp.Equal(expectedTerminal, terminal.String()) {
-		t.Errorf("Want: %q, got: %q", expectedRecorder, &terminal)
+	gotTerminal := terminal.String()
+	if !cmp.Equal(wantTerminal, gotTerminal) {
+		t.Error(cmp.Diff(wantTerminal, gotTerminal))
 	}
-
-	if !cmp.Equal(expectedRecorder, recorder.String()) {
-		t.Errorf("Want: %q, got: %q", expectedRecorder, &terminal)
+	gotRecorder := recorder.String()
+	if !cmp.Equal(wantRecorder, gotRecorder) {
+		t.Error(cmp.Diff(wantRecorder, gotRecorder))
 	}
 }
 
