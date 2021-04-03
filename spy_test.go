@@ -48,15 +48,16 @@ func TestParseCommand(t *testing.T) {
 }
 
 func TestTimestamp(t *testing.T) {
-	// write log line with timestamp
-	wantTimestamp := "2021-03-26T17:52:13Z00:00"
-	want := wantTimestamp + " some text"
-	currentTime := time.Parse(time.RFC3339, wantTimestamp)
+	wantTimestamp := "Log time: 2020-04-04T20:15:02Z\n\n"
+	currentTime := time.Date(2020, time.April, 4, 20, 15, 02, 00, time.UTC)
+
 	fakeRecorder := bytes.Buffer{}
-	session := spy.NewSession()
-	session.Record(currentTime, "some text")
+
+	s, _ := NewSession("")
+	s.Recorder = &fakeRecorder
+	s.RecordTime(currentTime)
 	got := fakeRecorder.String()
-	if !cmp.Equal(want, got) {
-		t.Error(cmp.Diff(want, got))
+	if !cmp.Equal(wantTimestamp, got) {
+		t.Error(cmp.Diff(wantTimestamp, got))
 	}
 }

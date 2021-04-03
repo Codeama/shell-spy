@@ -1,12 +1,16 @@
 package main
 
-import "log"
+import (
+	"log"
+	"spy"
+)
 
 func main() {
-	err := spy.RunSession("/tmp/log",
+	s, err := spy.NewSession("/tmp/log",
 		spy.WithTimestamps(),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	s.Run()
 }

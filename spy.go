@@ -2,7 +2,6 @@ package spy
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -33,11 +32,11 @@ func ParseCommand(cmd string) (string, []string, error) {
 // It writes to both writers; whilst the first writer logs only
 // the executed command result on the user's terminal
 // the second logs to a specified writer with additional messages
-func Execute(terminal io.Writer, recorder io.Writer, commandLine string) error {
+func (s *Session) Execute(commandLine string) error {
 	name, args, err := ParseCommand(commandLine)
 
-	w := io.MultiWriter(terminal, recorder)
-	fmt.Fprintln(recorder, "************ START ************\nCOMMAND:", commandLine, "\n\nOUTPUT:")
+	w := io.MultiWriter(s.Terminal, s.Recorder)
+	fmt.Fprintln(s.Recorder, "COMMAND:", commandLine, "\n\nOUTPUT:")
 
 	if err != nil {
 		fmt.Fprintln(w, "Error parsing command")
@@ -56,9 +55,11 @@ func Execute(terminal io.Writer, recorder io.Writer, commandLine string) error {
 
 type Option func(*Session) error
 
-type Session struct{
+type Session struct {
 	timestampMode bool
-	Recorder io.Writer
+	prompt        bool
+	Recorder      io.Writer
+	Terminal      io.Writer
 }
 
 func WithTimestamps() Option {
@@ -68,26 +69,36 @@ func WithTimestamps() Option {
 	}
 }
 
-func NewSession(filepath string, opts ...Option) (Session, error) {
-	session := Session{}
-	f, err := os.Create(s.filepath)
-	if err != nil {
-		return err
+func WithCustomPrompt() Option {
+	return func(s *Session) error {
+		s.prompt = true
+		return nil
 	}
-	session.Recorder = f
+}
+
+// NewSession creates and returns a new shell session with a file
+// and specified options to customise the terminal
+func NewSession(filepath string, opts ...Option) (Session, error) {
+	s := Session{}
+	f, err := os.Create(filepath)
+	if err != nil {
+		return Session{}, err
+	}
+	s.Terminal = os.Stdout
+	s.Recorder = f
+
 	for _, opt := range opts {
-		err := opt(&session)
+		err := opt(&s)
 		if err != nil {
-			return err
+			return Session{}, err
 		}
 	}
-	return session
+	return s, nil
 }
 
 func (s *Session) Run() {
 	scanner := bufio.NewScanner(os.Stdin)
 
-	defer f.Close()
 	user, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
@@ -98,17 +109,16 @@ func (s *Session) Run() {
 		log.Fatal(err)
 	}
 	if s.timestampMode {
-		// do the timestamps
+		s.RecordTime(time.Now())
 	}
-	var out bytes.Buffer
 	color.New(color.BgCyan).Printf("%v@%v:", user.Username, host)
 	for scanner.Scan() {
 		s.Execute(scanner.Text())
-		color.New(color.FgCyan).Println(out.String())
+		color.New(color.FgCyan).Println(s.Terminal)
 	}
 }
-
-func (s *Session) Record(ts time.Time, text string) {
+func (s *Session) RecordTime(ts time.Time) {
 	formattedTime := ts.Format(time.RFC3339)
-	fmt.Fprintf(s.Recorder, "%s %s", formattedTime, s.Recorder)
+	fmt.Fprintf(s.Recorder, "Log time: %s\n\n", formattedTime)
+
 }
