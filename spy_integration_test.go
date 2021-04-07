@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"spy"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestExecuteIntegration(t *testing.T) {
 	commandLine := "echo Hello, World!"
-	wantRecorder := fmt.Sprintf("COMMAND: %s \n\nOUTPUT:\nHello, World!\n", commandLine)
+	wantRecorder := fmt.Sprintf("%s\nHello, World!\n", commandLine)
 	wantTerminal := "Hello, World!\n"
 
 	s, err := spy.NewSession("/tmp/test-file.log")
@@ -62,5 +63,20 @@ func TestExecuteIntegrationInvalid(t *testing.T) {
 	got := terminal.String()
 	if want != got {
 		t.Errorf("Want: %q, got: %q", want, got)
+	}
+}
+
+func TestWithTimestamp(t *testing.T) {
+	wantTimestamp := "2020-04-04T20:15:02Z\n"
+	currentTime := time.Date(2020, time.April, 4, 20, 15, 02, 00, time.UTC)
+
+	fakeRecorder := bytes.Buffer{}
+
+	s, _ := spy.NewSession("/tmp/test-file.log")
+	s.Recorder = &fakeRecorder
+	s.RecordTime(currentTime)
+	got := fakeRecorder.String()
+	if !cmp.Equal(wantTimestamp, got) {
+		t.Error(cmp.Diff(wantTimestamp, got))
 	}
 }

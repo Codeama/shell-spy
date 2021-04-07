@@ -1,9 +1,7 @@
 package spy
 
 import (
-	"bytes"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -45,19 +43,4 @@ func TestParseCommand(t *testing.T) {
 		}
 	}
 
-}
-
-func TestTimestamp(t *testing.T) {
-	wantTimestamp := "Log time: 2020-04-04T20:15:02Z\n\n"
-	currentTime := time.Date(2020, time.April, 4, 20, 15, 02, 00, time.UTC)
-
-	fakeRecorder := bytes.Buffer{}
-
-	s, _ := NewSession("")
-	s.Recorder = &fakeRecorder
-	s.RecordTime(currentTime)
-	got := fakeRecorder.String()
-	if !cmp.Equal(wantTimestamp, got) {
-		t.Error(cmp.Diff(wantTimestamp, got))
-	}
 }

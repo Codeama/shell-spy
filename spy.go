@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"os/user"
@@ -14,24 +13,25 @@ import (
 	"github.com/fatih/color"
 )
 
-type Option func(*Session) error
+type Option func(*session) error
 
-type Session struct {
+type session struct {
 	TimestampMode bool
 	ShellPrompt   string
+	Input         io.Reader
 	Recorder      io.Writer
 	Terminal      io.Writer
 }
 
 func WithTimestamps() Option {
-	return func(s *Session) error {
+	return func(s *session) error {
 		s.TimestampMode = true
 		return nil
 	}
 }
 
 func WithUserPrompt(userPrompt string) Option {
-	return func(s *Session) error {
+	return func(s *session) error {
 		s.ShellPrompt = userPrompt
 		return nil
 	}
@@ -53,11 +53,11 @@ func ParseCommand(cmd string) (string, []string, error) {
 
 // Execute accepts a shell command and writes the result to
 // the Session struct writers (Recorder and Terminal)
-func (s *Session) Execute(commandLine string) error {
+func (s *session) Execute(commandLine string) error {
 	name, args, err := ParseCommand(commandLine)
 
 	w := io.MultiWriter(s.Terminal, s.Recorder)
-	fmt.Fprintln(s.Recorder, "COMMAND:", commandLine, "\n\nOUTPUT:")
+	fmt.Fprintln(s.Recorder, commandLine)
 
 	if err != nil {
 		fmt.Fprintln(w, "Error parsing command")
@@ -75,35 +75,37 @@ func (s *Session) Execute(commandLine string) error {
 }
 
 // NewSession creates and returns a new shell session with a file
-func NewSession(filepath string, opts ...Option) (Session, error) {
-	s := Session{}
+func NewSession(filepath string, opts ...Option) (session, error) {
+	s := session{}
 	f, err := os.Create(filepath)
 	if err != nil {
-		return Session{}, err
+		return session{}, err
 	}
+
+	s.Input = os.Stdin
 	s.Terminal = os.Stdout
 	s.Recorder = f
 
 	for _, opt := range opts {
 		err := opt(&s)
 		if err != nil {
-			return Session{}, err
+			return session{}, err
 		}
 	}
 	return s, nil
 }
 
-func (s *Session) Run() {
-	scanner := bufio.NewScanner(os.Stdin)
+func (s *session) Run() error {
+	scanner := bufio.NewScanner(s.Input)
 
 	user, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("retrieving current user returned err: %v", err)
 	}
 
 	host, err := os.Hostname()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("retrieving host name returned err: %v", err)
 	}
 
 	prompt := fmt.Sprintf("%v@%v:~$", user.Username, host)
@@ -117,13 +119,15 @@ func (s *Session) Run() {
 	}
 
 	color.New(color.BgCyan).Printf(prompt)
+
 	for scanner.Scan() {
 		s.Execute(scanner.Text())
 		color.New(color.FgCyan).Println(s.Terminal)
 	}
+	return nil
 }
 
-func (s *Session) RecordTime(ts time.Time) {
+func (s *session) RecordTime(ts time.Time) {
 	formattedTime := ts.Format(time.RFC3339)
-	fmt.Fprintf(s.Recorder, "Log time: %s\n\n", formattedTime)
+	fmt.Fprintln(s.Recorder, formattedTime)
 }
