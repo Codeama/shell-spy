@@ -13,11 +13,23 @@ import (
 	"github.com/fatih/color"
 )
 
+// sorry no American English, not today >.<
+type Colour color.Attribute
+
+const (
+	Cyan   Colour = 46
+	Yellow Colour = 43
+	Red    Colour = 101
+	Green  Colour = 42
+	White  Colour = 107
+)
+
 type Option func(*session) error
 
 type session struct {
 	TimestampMode bool
 	ShellPrompt   string
+	Colour        Colour
 	Input         io.Reader
 	Recorder      io.Writer
 	Terminal      io.Writer
@@ -33,6 +45,24 @@ func WithTimestamps() Option {
 func WithUserPrompt(userPrompt string) Option {
 	return func(s *session) error {
 		s.ShellPrompt = userPrompt
+		return nil
+	}
+}
+
+func WithTerminalColour(userColour Colour) Option {
+	return func(s *session) error {
+		switch userColour {
+		case Yellow:
+			s.Colour = Yellow
+		case Red:
+			s.Colour = Red
+		case Green:
+			s.Colour = Green
+		case White:
+			s.Colour = White
+		default:
+			s.Colour = Cyan
+		}
 		return nil
 	}
 }
@@ -118,11 +148,15 @@ func (s *session) Run() error {
 		s.RecordTime(time.Now())
 	}
 
-	color.New(color.BgCyan).Printf(prompt)
+	if s.Colour == 0 {
+		s.Colour = Cyan
+	}
+
+	color.New(color.Attribute(s.Colour)).Print(prompt)
 
 	for scanner.Scan() {
 		s.Execute(scanner.Text())
-		color.New(color.FgCyan).Println(s.Terminal)
+		color.New(color.Attribute(s.Colour)).Println(s.Terminal)
 	}
 	return nil
 }

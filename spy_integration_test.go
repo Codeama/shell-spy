@@ -80,3 +80,36 @@ func TestWithTimestamp(t *testing.T) {
 		t.Error(cmp.Diff(wantTimestamp, got))
 	}
 }
+
+func TestRun(t *testing.T) {
+	input := "echo Hi!"
+	wantRecorder := fmt.Sprintf("%s\nHi!\n", input)
+	wantTerminal := "Hi!\n"
+
+	s, err := spy.NewSession("/tmp/test-file.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s.Input = bytes.NewReader([]byte(input))
+
+	var logFile, terminal bytes.Buffer
+	s.Recorder = &logFile
+	s.Terminal = &terminal
+
+	err = s.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gotRecorder := logFile.String()
+	gotTerminal := terminal.String()
+
+	if !cmp.Equal(wantRecorder, gotRecorder) {
+		t.Error(cmp.Diff(wantRecorder, gotRecorder))
+	}
+
+	if !cmp.Equal(wantTerminal, gotTerminal) {
+		t.Error(cmp.Diff(wantTerminal, gotTerminal))
+	}
+}
