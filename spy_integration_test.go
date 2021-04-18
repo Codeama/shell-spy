@@ -73,6 +73,7 @@ func TestWithTimestamp(t *testing.T) {
 	fakeRecorder := bytes.Buffer{}
 
 	s, _ := spy.NewSession("/tmp/test-file.log")
+	s.TimestampMode = true
 	s.Recorder = &fakeRecorder
 	s.RecordTime(currentTime)
 	got := fakeRecorder.String()

@@ -13,56 +13,34 @@ import (
 	"github.com/fatih/color"
 )
 
-// sorry no American English, not today >.<
-type Colour color.Attribute
-
-const (
-	Cyan   Colour = 46
-	Yellow Colour = 43
-	Red    Colour = 101
-	Green  Colour = 42
-	White  Colour = 107
-)
-
-type Option func(*session) error
+type option func(*session) error
 
 type session struct {
 	TimestampMode bool
 	ShellPrompt   string
-	Colour        Colour
+	Colour        color.Attribute
 	Input         io.Reader
 	Recorder      io.Writer
 	Terminal      io.Writer
 }
 
-func WithTimestamps() Option {
+func WithTimestamps() option {
 	return func(s *session) error {
 		s.TimestampMode = true
 		return nil
 	}
 }
 
-func WithUserPrompt(userPrompt string) Option {
+func WithUserPrompt(userPrompt string) option {
 	return func(s *session) error {
-		s.ShellPrompt = userPrompt
+		s.ShellPrompt = userPrompt + ":~$"
 		return nil
 	}
 }
 
-func WithTerminalColour(userColour Colour) Option {
+func WithTerminalColour(userColour color.Attribute) option {
 	return func(s *session) error {
-		switch userColour {
-		case Yellow:
-			s.Colour = Yellow
-		case Red:
-			s.Colour = Red
-		case Green:
-			s.Colour = Green
-		case White:
-			s.Colour = White
-		default:
-			s.Colour = Cyan
-		}
+		s.Colour = userColour
 		return nil
 	}
 }
@@ -105,16 +83,24 @@ func (s *session) Execute(commandLine string) error {
 }
 
 // NewSession creates and returns a new shell session with a file
-func NewSession(filepath string, opts ...Option) (session, error) {
-	s := session{}
+func NewSession(filepath string, opts ...option) (session, error) {
 	f, err := os.Create(filepath)
 	if err != nil {
 		return session{}, err
 	}
 
-	s.Input = os.Stdin
-	s.Terminal = os.Stdout
-	s.Recorder = f
+	prompt, err := defaultPrompt()
+	if err != nil {
+		return session{}, err
+	}
+
+	s := session{
+		Input:       os.Stdin,
+		Terminal:    os.Stdout,
+		Recorder:    f,
+		ShellPrompt: prompt,
+		Colour:      color.BgCyan,
+	}
 
 	for _, opt := range opts {
 		err := opt(&s)
@@ -122,46 +108,44 @@ func NewSession(filepath string, opts ...Option) (session, error) {
 			return session{}, err
 		}
 	}
+
 	return s, nil
 }
 
 func (s *session) Run() error {
 	scanner := bufio.NewScanner(s.Input)
+	colour := color.New(s.Colour)
 
-	user, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("retrieving current user returned err: %v", err)
-	}
+	s.RecordTime(time.Now())
 
-	host, err := os.Hostname()
-	if err != nil {
-		return fmt.Errorf("retrieving host name returned err: %v", err)
-	}
-
-	prompt := fmt.Sprintf("%v@%v:~$", user.Username, host)
-
-	if s.ShellPrompt != "" {
-		prompt = s.ShellPrompt + ":~$"
-	}
-
-	if s.TimestampMode {
-		s.RecordTime(time.Now())
-	}
-
-	if s.Colour == 0 {
-		s.Colour = Cyan
-	}
-
-	color.New(color.Attribute(s.Colour)).Print(prompt)
+	colour.Print(s.ShellPrompt)
 
 	for scanner.Scan() {
 		s.Execute(scanner.Text())
-		color.New(color.Attribute(s.Colour)).Println(s.Terminal)
+		colour.Println(s.Terminal)
 	}
 	return nil
 }
 
 func (s *session) RecordTime(ts time.Time) {
-	formattedTime := ts.Format(time.RFC3339)
-	fmt.Fprintln(s.Recorder, formattedTime)
+	if s.TimestampMode {
+		formattedTime := ts.Format(time.RFC3339)
+		fmt.Fprintln(s.Recorder, formattedTime)
+	}
+}
+
+func defaultPrompt() (string, error) {
+	user, err := user.Current()
+	if err != nil {
+		return "", fmt.Errorf("retrieving current user returned err: %v", err)
+	}
+
+	host, err := os.Hostname()
+	if err != nil {
+		return "", fmt.Errorf("retrieving host name returned err: %v", err)
+	}
+
+	prompt := fmt.Sprintf("%v@%v:~$", user.Username, host)
+
+	return prompt, nil
 }
